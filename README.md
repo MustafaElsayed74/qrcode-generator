@@ -57,3 +57,24 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+---
+
+**Backend (Spring Boot) run instructions**
+
+From the `qrcodegenerator` folder run the Maven wrapper to start the backend on port `9091`:
+
+```powershell
+.\mvnw.cmd -DskipTests spring-boot:run
+```
+
+The backend exposes these useful endpoints:
+
+- `GET /api/qr?text=...&size=...` - returns PNG image of QR for provided text.
+- `POST /api/qr` - JSON body `{ type: "text|url|social|vcard|imageUrl", size:300, payload: {...} }` returns PNG.
+- `POST /api/upload-image` - multipart form `file` to upload an image; returns JSON `{ "url": "http://.../uploads/filename" }`.
+
+A minimal static UI is served at `http://localhost:9091/ui/index.html` to generate and preview QR codes without installing the Angular client.
+
+If you prefer to run a separate Angular development server, the backend CORS is configured to allow `http://localhost:4200`.
+# qrcode-generator
