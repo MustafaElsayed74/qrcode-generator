@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>QR Code Generator</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 20px
+        }
+
+        .row {
+            margin-bottom: 12px
+        }
+    </style>
+</head>
+
+<body>
+    <h2>QR Code Generator</h2>
+
+    <div class="row">
+        <label>Type:
+            <select id="type">
+                <option value="text">Text</option>
+                <option value="url">URL</option>
+                <option value="social">Social links</option>
+                <option value="imageUrl">Image URL / uploaded image</option>
+            </select>
+        </label>
+    </div>
+
+    <div id="fields">
+        <div class="row" id="textRow">
+            <label>Text: <input id="text" style="width:400px" /></label>
+        </div>
+        <div class="row" id="urlRow" style="display:none">
+            <label>URL: <input id="url" style="width:400px" /></label>
+        </div>
+        <div class="row" id="socialRow" style="display:none">
+            <div><label>Facebook: <input id="facebook" style="width:400px" /></label></div>
+            <div><label>Twitter: <input id="twitter" style="width:400px" /></label></div>
+            <div><label>Instagram: <input id="instagram" style="width:400px" /></label></div>
+            <div><label>LinkedIn: <input id="linkedin" style="width:400px" /></label></div>
+        </div>
+        <div class="row" id="imageRow" style="display:none">
+            <div><label>Image URL: <input id="imageUrl" style="width:400px" /></label></div>
+            <div>Or upload image: <input type="file" id="file" accept="image/*" /></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <label>Size: <input id="size" type="number" value="300" /></label>
+        <button id="generate">Generate</button>
+    </div>
+
+    <div class="row">
+        <img id="preview" alt="QR preview" style="border:1px solid #ddd;max-width:400px;max-height:400px" />
+    </div>
+    <div class="row">
+        <a id="download" href="#" download="qrcode.png">Download PNG</a>
+    </div>
+
+    <script>
+        const typeEl = document.getElementById('type');
+        const textRow = document.getElementById('textRow');
+        const urlRow = document.getElementById('urlRow');
+        const socialRow = document.getElementById('socialRow');
+        const imageRow = document.getElementById('imageRow');
+        const preview = document.getElementById('preview');
+        const download = document.getElementById('download');
+
+        function updateFields() {
+            const t = typeEl.value;
+            textRow.style.display = (t === 'text') ? '' : 'none';
+            urlRow.style.display = (t === 'url') ? '' : 'none';
+            socialRow.style.display = (t === 'social') ? '' : 'none';
+            imageRow.style.display = (t === 'imageUrl') ? '' : 'none';
+        }
+
+        typeEl.addEventListener('change', updateFields);
+        updateFields();
+
+        async function uploadFile(file) {
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch('/api/upload-image', { method: 'POST', body: form });
+            return res.json();
+        }
+
+        async function generate() {
+            const t = typeEl.value;
+            const size = parseInt(document.getElementById('size').value) || 300;
+            let endpoint = '/api/qr';
+
+            if (t === 'text') {
+                const text = document.getElementById('text').value || '';
+                endpoint = `/api/qr?text=${encodeURIComponent(text)}&size=${size}`;
+                const res = await fetch(endpoint);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                preview.src = url;
+                download.href = url;
+            } else if (t === 'url') {
+                const urlValue = document.getElementById('url').value || '';
+                endpoint = `/api/qr?text=${encodeURIComponent(urlValue)}&size=${size}`;
+                const res = await fetch(endpoint);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                preview.src = url;
+                download.href = url;
+            } else if (t === 'social') {
+                const payload = {
+                    type: 'social',
+                    size: size,
+                    payload: {
+                        facebook: document.getElementById('facebook').value,
+                        twitter: document.getElementById('twitter').value,
+                        instagram: document.getElementById('instagram').value,
+                        linkedin: document.getElementById('linkedin').value
+                    }
+                };
+                const res = await fetch('/api/qr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                preview.src = url;
+                download.href = url;
+            } else if (t === 'imageUrl') {
+                const imageUrl = document.getElementById('imageUrl').value;
+                if (imageUrl) {
+                    const res = await fetch(`/api/qr?text=${encodeURIComponent(imageUrl)}&size=${size}`);
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    preview.src = url;
+                    download.href = url;
+                } else {
+                    const fileInput = document.getElementById('file');
+                    if (fileInput.files.length === 0) { alert('Choose a file first'); return; }
+                    const up = await uploadFile(fileInput.files[0]);
+                    if (up.url) {
+                        const res = await fetch(`/api/qr?text=${encodeURIComponent(up.url)}&size=${size}`);
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        preview.src = url;
+                        download.href = url;
+                    } else {
+                        alert('Upload failed');
+                    }
+                }
+            }
+        }
+
+        document.getElementById('generate').addEventListener('click', generate);
+    </script>
+</body>
+
+</html>
