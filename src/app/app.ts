@@ -52,8 +52,8 @@ export class App {
     const host = window.location.hostname;
     const port = window.location.port;
 
-    // If the app is being served by the backend (same origin), use that origin
-    if (port === '9091') {
+    // Use same origin unless running Angular dev server on 4200
+    if (!(host === 'localhost' && port === '4200')) {
       return origin;
     }
 
